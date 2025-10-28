@@ -5,22 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Albather Jewelry — Live Gold Prices (KWD)</title>
   <style>
-    html,body{margin:0;padding:0;background:#000;color:#d4af37;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    :root { --gold:#d4af37; --line: rgba(212,175,55,.25); }
+    html,body{margin:0;padding:0;background:#000;color:var(--gold);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .wrap{display:flex;flex-direction:column;min-height:100vh}
-    header{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:18px 24px;gap:16px;border-bottom:1px solid rgba(212,175,55,.25)}
-    header img{height:120px;width:120px;border-radius:50%;object-fit:cover;border:2px solid #d4af37;background:#000;box-shadow:0 0 20px #d4af37}
+    header{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:18px 24px;gap:16px;border-bottom:1px solid var(--line)}
+    #logo{height:120px;width:120px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);background:#000;box-shadow:0 0 20px var(--gold)}
+    #logoFallback{display:none;align-items:center;justify-content:center;height:120px;width:120px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 20px var(--gold);font-weight:800;letter-spacing:.5px}
     .title{text-align:center}
-    h1{font-size:clamp(22px,3vw,40px);margin:0;letter-spacing:.5px}
+    h1{font-size:clamp(22px,3vw,40px);margin:0;letter-spacing:.4px}
     header p{margin:4px 0 0;opacity:.85;font-size:clamp(12px,1.8vw,16px)}
     main{flex:1;display:flex;align-items:center;justify-content:center}
-    .board{width:min(900px,92vw);margin:32px auto;border:1px solid rgba(212,175,55,.25);border-radius:16px;padding:24px;box-shadow:0 0 30px rgba(212,175,55,.08) inset}
+    .board{width:min(900px,92vw);margin:32px auto;border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 0 30px rgba(212,175,55,.08) inset}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    .card{background:rgba(255,255,255,.02);border:1px solid rgba(212,175,55,.25);border-radius:14px;padding:18px;text-align:center}
+    .card{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:14px;padding:18px;text-align:center}
     .label{font-size:clamp(14px,2vw,18px);opacity:.9;margin-bottom:8px}
     .price{font-size:clamp(26px,4vw,44px);font-weight:700;line-height:1.1}
     .muted{opacity:.8;font-size:clamp(11px,1.6vw,14px)}
-    footer{text-align:center;padding:14px;border-top:1px solid rgba(212,175,55,.25);font-size:clamp(11px,1.6vw,14px)}
-    .bad{color:#ff6961}.ok{color:#d4af37}
+    footer{text-align:center;padding:14px;border-top:1px solid var(--line);font-size:clamp(11px,1.6vw,14px)}
+    .bad{color:#ff6961}.ok{color:var(--gold)}
     .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
     .row .muted{text-align:right}
     .hint{text-align:center;opacity:.8;font-size:12px;margin-top:8px}
@@ -29,7 +31,11 @@
 <body>
 <div class="wrap">
   <header>
-    <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QCMRXhpZgAATU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAABIAAAAAQAAAEgAAAABAAOgAQADAAAAAf//AACgAgAEAAAAAQAAARygAwAEAAAAAQAAAOsAAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2v3zMyUryguwfb//Z" alt="Albather Jewelry Logo"/>
+    <!-- If you upload logo.jpg to the repo root it will show; otherwise AJ badge appears -->
+    <img id="logo" src="logo.jpg" alt="Albather Jewelry Logo"
+         onerror="this.remove();document.getElementById('logoFallback').style.display='flex';"/>
+    <div id="logoFallback">AJ</div>
+
     <div class="title">
       <h1>Albather Jewelry — Live Gold Price Board</h1>
       <p>Prices in KWD per gram • Auto-refresh every 30 seconds</p>
@@ -45,7 +51,7 @@
         <div class="card"><div class="label">18K</div><div id="p18" class="price">—</div></div>
       </div>
       <div class="row">
-        <div class="muted" id="source">Source: gold spot + FX USD→KWD</div>
+        <div class="muted" id="source">Source: spot gold (USD/oz) × FX USD→KWD</div>
         <div class="muted" id="updated">Last updated: —</div>
       </div>
       <div class="hint">Tip: In Fire TV’s Silk Browser, press menu ⋮ and choose “Full screen”.</div>
@@ -56,41 +62,22 @@
 </div>
 
 <script>
-  const OUNCE_TO_GRAM = 31.1034768;
-  const FINENESS = { "24":1.0, "22":22/24, "21":21/24, "18":18/24 };
-
-  const proxy = "https://cors-proxy.fringe.zone/";
-
-  async function getGoldUSDPerOunce(){
-    const r = await fetch(proxy + "https://api.metals.live/v1/spot",{cache:"no-store"});
-    const arr = await r.json();
-    const price = (arr && arr.length && arr[0].gold) ? Number(arr[0].gold) : NaN;
-    if(!isFinite(price)) throw new Error("Gold price not available");
-    return price;
-  }
-
-  async function getUSDtoKWD(){
-    const r = await fetch(proxy + "https://api.frankfurter.app/latest?from=USD&to=KWD",{cache:"no-store"});
-    const data = await r.json();
-    const rate = data?.rates?.KWD ? Number(data.rates.KWD) : NaN;
-    if(!isFinite(rate)) throw new Error("FX rate not available");
-    return rate;
-  }
+  // Your Apps Script endpoint
+  const API = "https://script.google.com/macros/s/AKfycby1kGxNprdaU4uxOngIhPd-Q5BNlzliCXKoReg60x1Z3rZ0v2VKMhkMQwa_qzKkH51Anw/exec";
 
   const fmt = v => Number(v).toFixed(3);
 
   async function refresh(){
     const updated = document.getElementById("updated");
     try{
-      const [usdPerOz, usdToKwd] = await Promise.all([getGoldUSDPerOunce(), getUSDtoKWD()]);
-      const kwdPerGram = (usdPerOz * usdToKwd) / OUNCE_TO_GRAM;
-
-      document.getElementById("p24").textContent = fmt(kwdPerGram * FINENESS["24"]) + " KWD";
-      document.getElementById("p22").textContent = fmt(kwdPerGram * FINENESS["22"]) + " KWD";
-      document.getElementById("p21").textContent = fmt(kwdPerGram * FINENESS["21"]) + " KWD";
-      document.getElementById("p18").textContent = fmt(kwdPerGram * FINENESS["18"]) + " KWD";
-
-      updated.textContent = "Last updated: " + new Date().toLocaleString();
+      const r = await fetch(API, { cache: "no-store" });
+      const data = await r.json();
+      if (data.error) throw new Error("Upstream feed error");
+      document.getElementById("p24").textContent = fmt(data.p24) + " KWD";
+      document.getElementById("p22").textContent = fmt(data.p22) + " KWD";
+      document.getElementById("p21").textContent = fmt(data.p21) + " KWD";
+      document.getElementById("p18").textContent = fmt(data.p18) + " KWD";
+      updated.textContent = "Last updated: " + new Date(data.updated).toLocaleString();
       updated.className = "muted ok";
     }catch(e){
       console.error(e);
