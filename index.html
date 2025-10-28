@@ -8,7 +8,7 @@
     html,body{margin:0;padding:0;background:#000;color:#d4af37;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     .wrap{display:flex;flex-direction:column;min-height:100vh}
     header{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:18px 24px;gap:16px;border-bottom:1px solid rgba(212,175,55,.25)}
-    header img{height:120px;width:120px;border-radius:50%;object-fit:cover;border:2px solid #d4af37;background:#000}
+    header img{height:120px;width:120px;border-radius:50%;object-fit:cover;border:2px solid #d4af37;background:#000;box-shadow:0 0 20px #d4af37}
     .title{text-align:center}
     h1{font-size:clamp(22px,3vw,40px);margin:0;letter-spacing:.5px}
     header p{margin:4px 0 0;opacity:.85;font-size:clamp(12px,1.8vw,16px)}
@@ -45,7 +45,7 @@
         <div class="card"><div class="label">18K</div><div id="p18" class="price">—</div></div>
       </div>
       <div class="row">
-        <div class="muted" id="source">Source: spot gold (USD/oz) × FX (USD→KWD)</div>
+        <div class="muted" id="source">Source: live gold price + FX USD→KWD</div>
         <div class="muted" id="updated">Last updated: —</div>
       </div>
       <div class="hint">Tip: In Fire TV’s Silk Browser, press menu ⋮ and choose “Full screen”.</div>
@@ -60,11 +60,22 @@
   const FINENESS = { "24":1.0, "22":22/24, "21":21/24, "18":18/24 };
 
   async function getGoldUSDPerOunce(){
-    const res = await fetch("https://api.metals.live/v1/spot",{cache:"no-store"});
-    const arr = await res.json();
-    const price = (arr && arr.length && arr[0].gold) ? Number(arr[0].gold) : NaN;
-    if(!isFinite(price)) throw new Error("Gold price not available");
-    return price;
+    try {
+      // primary API (Metals.live)
+      const r = await fetch("https://api.metals.live/v1/spot",{cache:"no-store"});
+      const arr = await r.json();
+      const price = (arr && arr.length && arr[0].gold) ? Number(arr[0].gold) : NaN;
+      if(isFinite(price)) return price;
+      throw new Error("Primary API failed");
+    } catch {
+      // fallback API (goldapi.io public mirror)
+      const r2 = await fetch("https://api.goldapi.io/api/XAU/USD", {
+        headers: { "x-access-token": "goldapi-demo-key" }
+      });
+      const data = await r2.json();
+      if (data?.price) return Number(data.price);
+      throw new Error("Gold price not available");
+    }
   }
 
   async function getUSDtoKWD(){
