@@ -3,113 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Albather Jewelry — Live Gold Prices (KWD)</title>
+  <title>TEST PAGE - Albather Jewelry</title>
   <style>
-    html,body{margin:0;padding:0;background:#000;color:#d4af37;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    .wrap{display:flex;flex-direction:column;min-height:100vh}
-    header{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:18px 24px;gap:16px;border-bottom:1px solid rgba(212,175,55,.25)}
-    header img{height:120px;width:120px;border-radius:50%;object-fit:cover;border:2px solid #d4af37;background:#000;box-shadow:0 0 20px #d4af37}
-    .title{text-align:center}
-    h1{font-size:clamp(22px,3vw,40px);margin:0;letter-spacing:.5px}
-    header p{margin:4px 0 0;opacity:.85;font-size:clamp(12px,1.8vw,16px)}
-    main{flex:1;display:flex;align-items:center;justify-content:center}
-    .board{width:min(900px,92vw);margin:32px auto;border:1px solid rgba(212,175,55,.25);border-radius:16px;padding:24px;box-shadow:0 0 30px rgba(212,175,55,.08) inset}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    .card{background:rgba(255,255,255,.02);border:1px solid rgba(212,175,55,.25);border-radius:14px;padding:18px;text-align:center}
-    .label{font-size:clamp(14px,2vw,18px);opacity:.9;margin-bottom:8px}
-    .price{font-size:clamp(26px,4vw,44px);font-weight:700;line-height:1.1}
-    .muted{opacity:.8;font-size:clamp(11px,1.6vw,14px)}
-    footer{text-align:center;padding:14px;border-top:1px solid rgba(212,175,55,.25);font-size:clamp(11px,1.6vw,14px)}
-    .bad{color:#ff6961}.ok{color:#d4af37}
-    .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
-    .row .muted{text-align:right}
-    .hint{text-align:center;opacity:.8;font-size:12px;margin-top:8px}
+    body {
+      background: black;
+      color: gold;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 100px;
+      font-size: 28px;
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QCMRXhpZgAATU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAABIAAAAAQAAAEgAAAABAAOgAQADAAAAAf//AACgAgAEAAAAAQAAARygAwAEAAAAAQAAAOsAAAAA/+0AOFBob3Rvc2hvcCAzLjAAOEJJTQQEAAAAAAAAOEJJTQQlAAAAAAAQ1B2M2v3zMyUryguwfb//Z" alt="Albather Jewelry Logo"/>
-    <div class="title">
-      <h1>Albather Jewelry — Live Gold Price Board</h1>
-      <p>Prices in KWD per gram • Auto-refresh every 30 seconds</p>
-    </div>
-  </header>
-
-  <main>
-    <div class="board">
-      <div class="grid">
-        <div class="card"><div class="label">24K</div><div id="p24" class="price">—</div></div>
-        <div class="card"><div class="label">22K</div><div id="p22" class="price">—</div></div>
-        <div class="card"><div class="label">21K</div><div id="p21" class="price">—</div></div>
-        <div class="card"><div class="label">18K</div><div id="p18" class="price">—</div></div>
-      </div>
-      <div class="row">
-        <div class="muted" id="source">Source: live gold price + FX USD→KWD</div>
-        <div class="muted" id="updated">Last updated: —</div>
-      </div>
-      <div class="hint">Tip: In Fire TV’s Silk Browser, press menu ⋮ and choose “Full screen”.</div>
-    </div>
-  </main>
-
-  <footer>Disclaimer: Indicative spot prices. Does not include making charges, VAT, or shop premiums.</footer>
-</div>
-
-<script>
-  const OUNCE_TO_GRAM = 31.1034768;
-  const FINENESS = { "24":1.0, "22":22/24, "21":21/24, "18":18/24 };
-
-  async function getGoldUSDPerOunce(){
-    try {
-      // primary API (Metals.live)
-      const r = await fetch("https://api.metals.live/v1/spot",{cache:"no-store"});
-      const arr = await r.json();
-      const price = (arr && arr.length && arr[0].gold) ? Number(arr[0].gold) : NaN;
-      if(isFinite(price)) return price;
-      throw new Error("Primary API failed");
-    } catch {
-      // fallback API (goldapi.io public mirror)
-      const r2 = await fetch("https://api.goldapi.io/api/XAU/USD", {
-        headers: { "x-access-token": "goldapi-demo-key" }
-      });
-      const data = await r2.json();
-      if (data?.price) return Number(data.price);
-      throw new Error("Gold price not available");
-    }
-  }
-
-  async function getUSDtoKWD(){
-    const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=KWD",{cache:"no-store"});
-    const data = await res.json();
-    const rate = data?.rates?.KWD ? Number(data.rates.KWD) : NaN;
-    if(!isFinite(rate)) throw new Error("FX rate not available");
-    return rate;
-  }
-
-  const fmt = v => Number(v).toFixed(3);
-
-  async function refresh(){
-    const updated = document.getElementById("updated");
-    try{
-      const [usdPerOz, usdToKwd] = await Promise.all([getGoldUSDPerOunce(), getUSDtoKWD()]);
-      const kwdPerGram = (usdPerOz * usdToKwd) / OUNCE_TO_GRAM;
-
-      document.getElementById("p24").textContent = fmt(kwdPerGram * FINENESS["24"]) + " KWD";
-      document.getElementById("p22").textContent = fmt(kwdPerGram * FINENESS["22"]) + " KWD";
-      document.getElementById("p21").textContent = fmt(kwdPerGram * FINENESS["21"]) + " KWD";
-      document.getElementById("p18").textContent = fmt(kwdPerGram * FINENESS["18"]) + " KWD";
-
-      updated.textContent = "Last updated: " + new Date().toLocaleString();
-      updated.className = "muted ok";
-    }catch(e){
-      console.error(e);
-      updated.textContent = "Update failed — will retry in 30s";
-      updated.className = "muted bad";
-    }
-  }
-
-  refresh();
-  setInterval(refresh, 30000);
-</script>
+  ✅ Website is updating correctly!
 </body>
 </html>
